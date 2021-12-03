@@ -1,0 +1,1 @@
+"""RepoUp: Serverless repository updater."""

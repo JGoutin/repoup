@@ -1,0 +1,115 @@
+---
+name: tests
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".pre-commit-config.yaml"
+
+env:
+  CACHE_DIR: /tmp/.workflow_cache
+  POETRY_CACHE_DIR: /tmp/.workflow_cache/.pip_packages
+  POETRY_VIRTUALENVS_PATH: /tmp/.workflow_cache/.venvs
+  PIP_CACHE_DIR: /tmp/.workflow_cache/.pip_packages
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: tests-${{ matrix.os }}-${{ matrix.python-version }}--${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install poetry
+        run: pip install poetry --disable-pip-version-check
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install cmake ninja-build libbz2-dev libmagic-dev libglib2.0-dev libcurl4-openssl-dev libxml2-dev librpm-dev libssl-dev zlib1g-dev libzstd-dev liblzma-dev
+          poetry install -n -E "rpm aws speedups"
+        env:
+          # "createrepo_c" Build options
+          SKBUILD_CONFIGURE_OPTIONS: "-DWITH_ZCHUNK=OFF -DWITH_LIBMODULEMD=OFF"
+
+      - name: Python code style
+        run: poetry run black . --check --diff
+        if: ${{ always() }}
+
+      - name: Python code quality
+        run: poetry run flake8 --docstring-convention google
+        if: ${{ always() }}
+
+      - name: Python code typing
+        run: poetry run mypy --strict --install-types --non-interactive .
+        if: ${{ always() }}
+
+      - name: Python code complexity
+        run: poetry run radon cc -n C repoup 1>&2
+        if: ${{ always() }}
+
+      - name: Python code maintenability
+        run: poetry run radon mi -n B repoup 1>&2
+        if: ${{ always() }}
+
+      - name: Python code security
+        run: poetry run bandit repoup -rs B404,B603
+        if: ${{ always() }}
+
+      - name: YAML code style
+        run: poetry run yamllint -s .
+        if: ${{ always() }}
+
+      - name: Test
+        run: poetry run pytest --junitxml=test-results.xml --cov-report xml
+        if: ${{ always() }}
+        env:
+          AWS_ACCESS_KEY_ID: FAKEACCESSKEYID
+          AWS_SECRET_ACCESS_KEY: FAKESECRETACCESSKEY
+          AWS_DEFAULT_REGION: eu-west-1
+          RPM_GPG_REQUIRE_SUDO: true
+
+      - name: Collect coverage report
+        uses: codecov/codecov-action@v2
+        if: ${{ always() }}
+
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'JGoutin/repoup' && github.ref_type == 'tag' }}
+    needs: [tests]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install poetry
+        run: pip install poetry --disable-pip-version-check
+
+      - name: Build and publish
+        run: |
+          poetry build
+          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+          poetry publish
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false

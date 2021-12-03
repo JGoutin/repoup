@@ -1,0 +1,100 @@
+[tool.poetry]
+name = "repoup"
+version = "1.0.0-beta.1"
+description = "Serverless package repository updater"
+authors = ["J.Goutin <jgoutin@accelize.com>"]
+license = "AGPL-3.0-or-later"
+readme = "README.md"
+repository = "https://github.com/JGoutin/repoup"
+keywords = ["repository", "packages", "rpm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    # "Development Status :: 5 - Production/Stable",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Archiving :: Packaging",
+    "Topic :: System :: Software Distribution",
+    "Typing :: Typed",
+]
+packages = [
+    { include = "repoup" },
+]
+
+[tool.poetry.dependencies]
+python = ">= 3.9,<4"
+createrepo_c = { version = "*", optional = true }
+aioboto3 = { version = "*", optional = true }
+aiohttp = {version = "*", extras = ["speedups"], optional = true }
+uvloop = { version = "*", optional = true }
+
+[tool.poetry.dev-dependencies]
+bandit = "*"
+botocore-stubs = "*"
+boto3-stubs = {version = "*", extras = ["cloudfront", "s3"]}
+black = "*"
+flake8 = "*"
+flake8-docstrings = "*"
+mypy = "*"
+pre-commit = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+pytest-docker = "*"
+docker-compose = "*"
+radon = "*"
+yamllint = "*"
+isort = "*"
+
+[tool.poetry.extras]
+aws = ["aioboto3"]
+rpm = ["createrepo_c"]
+speedups = ["aiohttp[speedups]", "uvloop"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = ["--strict-markers", "--cov=repoup"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:"
+]
+
+[tool.mypy]
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+implicit_reexport = false
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.conftest",
+    "createrepo_c",
+    "setuptools",
+    "aioboto3",
+    "uvloop"
+]
+ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

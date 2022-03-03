@@ -1,5 +1,6 @@
 [![tests](https://github.com/JGoutin/repoup/actions/workflows/tests.yml/badge.svg)](https://github.com/JGoutin/repoup/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/JGoutin/repoup/branch/main/graph/badge.svg?token=xTt9tdHPwH)](https://codecov.io/gh/JGoutin/repoup)
+[![PyPI](https://img.shields.io/pypi/v/repoup.svg)](https://pypi.org/project/repoup)
 
 Repoup is a utility to manage packages repositories stored on the cloud from serverless
 functions. For instance, it can manage an RPM repository stored on S3 from an AWS lambda

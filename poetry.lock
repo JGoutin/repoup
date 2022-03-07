@@ -120,7 +120,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "bandit"
-version = "1.7.3"
+version = "1.7.4"
 description = "Security oriented static analyser for python code."
 category = "dev"
 optional = false
@@ -193,8 +193,8 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.21.11"
-description = "Type annotations for boto3 1.21.11 generated with mypy-boto3-builder 7.2.1"
+version = "1.21.12"
+description = "Type annotations for boto3 1.21.12 generated with mypy-boto3-builder 7.2.1"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
@@ -526,8 +526,8 @@ crt = ["awscrt (==0.12.5)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.24.11"
-description = "Type annotations for botocore 1.24.11 generated with mypy-boto3-builder 7.2.1"
+version = "1.24.12"
+description = "Type annotations for botocore 1.24.12 generated with mypy-boto3-builder 7.2.1"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
@@ -1544,8 +1544,8 @@ attrs = [
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
 bandit = [
-    {file = "bandit-1.7.3-py3-none-any.whl", hash = "sha256:3ce9b4e6a4f7f41aa966c9543e635dd35e52a793a47e746f0c55c7ecfc69d7e8"},
-    {file = "bandit-1.7.3.tar.gz", hash = "sha256:58772ca951bf1129dda8a280d351547de832720bf7b5c29fac3103927980b8a6"},
+    {file = "bandit-1.7.4-py3-none-any.whl", hash = "sha256:412d3f259dab4077d0e7f0c11f50f650cc7d10db905d98f6520a95a18049658a"},
+    {file = "bandit-1.7.4.tar.gz", hash = "sha256:2d63a8c573417bae338962d4b9b06fbc6080f74ecd955a092849e1e65c717bd2"},
 ]
 bcrypt = [
     {file = "bcrypt-3.2.0-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:b589229207630484aefe5899122fb938a5b017b0f4349f769b8c13e78d99a8fd"},
@@ -1589,16 +1589,16 @@ boto3 = [
     {file = "boto3-1.20.24.tar.gz", hash = "sha256:739705b28e6b2329ea3b481ba801d439c296aaf176f7850729147ba99bbf8a9a"},
 ]
 boto3-stubs = [
-    {file = "boto3-stubs-1.21.11.tar.gz", hash = "sha256:2103a0ad9d889fe014fab3ec9bc2ad854553776e4e137e412a31aae1f44e2808"},
-    {file = "boto3_stubs-1.21.11-py3-none-any.whl", hash = "sha256:20bc24dc15c1eed6e4c7bb77f6e08ffb10acdc7d66f3067681ca5e246c85b3b8"},
+    {file = "boto3-stubs-1.21.12.tar.gz", hash = "sha256:6d484003735f1b663e8bdb0184888cd5667ffec8b8594afd29976226bae8928d"},
+    {file = "boto3_stubs-1.21.12-py3-none-any.whl", hash = "sha256:6d575810ad75316fdd89e8ce4284e876c0a49d5083e78010874bf5567410245e"},
 ]
 botocore = [
     {file = "botocore-1.23.24-py3-none-any.whl", hash = "sha256:e78d48c50c8c013fb9b362c6202fece2fe868edfd89b51968080180bdff41617"},
     {file = "botocore-1.23.24.tar.gz", hash = "sha256:43006b4f52d7bb655319d3da0f615cdbee7762853acc1ebcb1d49f962e6b4806"},
 ]
 botocore-stubs = [
-    {file = "botocore-stubs-1.24.11.tar.gz", hash = "sha256:2a0f0d943dde1362f6db99c252e15474959d91c224c5462ce214dc623cce349a"},
-    {file = "botocore_stubs-1.24.11-py3-none-any.whl", hash = "sha256:086845a644cebeff17e929d872222b86fa2dc8475505bc7ed193ad41396cb5b5"},
+    {file = "botocore-stubs-1.24.12.tar.gz", hash = "sha256:3591b67b27be430d72441f8d68976289db329958a5f131798f8427e54c2c5d13"},
+    {file = "botocore_stubs-1.24.12-py3-none-any.whl", hash = "sha256:73ea4cce08a4eb0b952fa2dece15693a1049150f161372283dc89a03b89fa5de"},
 ]
 brotli = [
     {file = "Brotli-1.0.9-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:268fe94547ba25b58ebc724680609c8ee3e5a843202e9a381f6f9c5e8bdb5c70"},

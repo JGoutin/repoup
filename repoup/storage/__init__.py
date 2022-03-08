@@ -47,12 +47,15 @@ class StorageBase(ABC, AsyncContext):
         return join(self._tmp, *parts)
 
     @abstractmethod
-    async def put_object(self, relpath: str, content: bytes) -> None:
+    async def put_object(
+        self, relpath: str, body: bytes, absolute: bool = False
+    ) -> None:
         """Put file content.
 
         Args:
             relpath: Relative path.
-            content: File content.
+            body: File content.
+            absolute: If True, use absolute path
         """
 
     @abstractmethod
@@ -77,11 +80,12 @@ class StorageBase(ABC, AsyncContext):
         """
 
     @abstractmethod
-    async def put_file(self, relpath: str) -> None:
+    async def put_file(self, relpath: str, absolute: bool = False) -> None:
         """Put file.
 
         Args:
             relpath: Relative path.
+            absolute: If True, use absolute path
         """
 
     @abstractmethod

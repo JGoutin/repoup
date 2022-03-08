@@ -74,52 +74,54 @@ class Storage(StorageBase):
             return join(*parts)
         return join(self._prefix, *parts)
 
-    async def put_object(self, relpath: str, body: bytes) -> None:
+    async def put_object(self, path: str, body: bytes, absolute: bool = False) -> None:
         """Put file content.
 
         Args:
-            relpath: Relative path.
+            path: Relative path.
             body: File content.
+            absolute: If True, use absolute path
         """
         await self._client.put_object(
-            Bucket=self._bucket, Key=self.join(relpath), Body=body
+            Bucket=self._bucket, Key=self.join(path, absolute=absolute), Body=body
         )
 
-    async def get_object(self, relpath: str, absolute: bool = False) -> bytes:
+    async def get_object(self, path: str, absolute: bool = False) -> bytes:
         """Get file content.
 
         Args:
-            relpath: Relative path.
+            path: Relative path.
             absolute: If True, use absolute path
 
         Returns:
             File content
         """
-        src = self.join(relpath, absolute=absolute)
+        src = self.join(path, absolute=absolute)
         with _s3_exception_handler(src):
             return await (  # type: ignore
                 await self._client.get_object(Bucket=self._bucket, Key=src)
             )["Body"].read()
 
-    async def get_file(self, relpath: str, absolute: bool = False) -> None:
+    async def get_file(self, path: str, absolute: bool = False) -> None:
         """Get file.
 
         Args:
-            relpath: Relative path.
+            path: Relative path.
             absolute: If True, use absolute path
         """
-        src = self.join(relpath, absolute=absolute)
+        src = self.join(path, absolute=absolute)
         with _s3_exception_handler(src):
-            await self._client.download_file(self._bucket, src, self.tmp_join(relpath))
+            await self._client.download_file(self._bucket, src, self.tmp_join(path))
 
-    async def put_file(self, relpath: str) -> None:
+    async def put_file(self, path: str, absolute: bool = False) -> None:
         """Put file.
 
         Args:
-            relpath: Relative path.
+            path: Relative path.
+            absolute: If True, use absolute path
         """
         await self._client.upload_file(
-            self.tmp_join(relpath), self._bucket, self.join(relpath)
+            self.tmp_join(path), self._bucket, self.join(path, absolute=absolute)
         )
 
     async def remove(self, path: str, absolute: bool = False) -> None:

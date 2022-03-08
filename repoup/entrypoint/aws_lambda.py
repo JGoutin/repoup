@@ -9,13 +9,10 @@ The GPG key content must be passed to GPG_PRIVATE_KEY instead of the key path.
 
 This lambda is intended to be triggered on S3 events "ObjectCreated:*" and
 "ObjectRemoved:*".
-
-By default, pass the extra variable "dir_name" to "get_repository". This variable can
-be used to define repository url, for instance in RPM "BASEURL".
 """
 from asyncio import get_event_loop
 from os import chmod, environ
-from os.path import basename, dirname, realpath
+from os.path import realpath
 from typing import Any, Dict
 
 from boto3 import client
@@ -30,7 +27,7 @@ except ImportError:  # pragma: no cover
 else:
     uvloop.install()
 
-loop = get_event_loop()
+LOOP = get_event_loop()
 
 
 def _init_gpg() -> None:
@@ -66,17 +63,18 @@ _init_gpg()
 del _init_gpg
 
 
-async def _async_handler(action: str, key: str) -> str:
+async def _async_handler(action: str, bucket: str, key: str) -> str:
     """Async handler.
 
     Args:
         action: Action to perform.
+        bucket: S3 bucket.
         key: S3 key to handle.
 
     Returns:
         Repository.
     """
-    async with (await rep.get_repository(key, dir_name=basename(dirname(key)))) as repo:
+    async with (await rep.get_repository(f"s3://{bucket}/{key}")) as repo:
         await getattr(repo, action)(key)
         return repo.url
 
@@ -96,6 +94,7 @@ def handler(event: Dict[str, Any], _: Any) -> None:
         action = "remove"
     else:
         return print(f"Ignoring unsupported event: {event_name}")
-    key = record["s3"]["object"]["key"]
-    url = loop.run_until_complete(_async_handler(action, key))
+    obj = record["s3"]["object"]
+    key = obj["key"]
+    url = LOOP.run_until_complete(_async_handler(action, obj["Bucket"], key))
     print(f'{action.capitalize().rstrip("e")}ed package "{key}" to repository "{url}"')

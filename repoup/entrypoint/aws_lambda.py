@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover
 else:
     uvloop.install()
 
-_loop = get_event_loop()
+loop = get_event_loop()
 
 
 def _init_gpg() -> None:
@@ -66,7 +66,7 @@ _init_gpg()
 del _init_gpg
 
 
-async def _async_handled(action: str, key: str) -> str:
+async def _async_handler(action: str, key: str) -> str:
     """Async handler.
 
     Args:
@@ -97,5 +97,5 @@ def handler(event: Dict[str, Any], _: Any) -> None:
     else:
         return print(f"Ignoring unsupported event: {event_name}")
     key = record["s3"]["object"]["key"]
-    url = _loop.run_until_complete(_async_handled(action, key))
+    url = loop.run_until_complete(_async_handler(action, key))
     print(f'{action.capitalize().rstrip("e")}ed package "{key}" to repository "{url}"')

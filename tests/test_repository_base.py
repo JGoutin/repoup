@@ -10,13 +10,14 @@ from tests.conftest import DIR_PATH
 class MockRepository(RepositoryBase):
     """Test Repository."""
 
-    async def add(self, path: str, remove_source: bool = True) -> None:
+    async def add(self, path: str, remove_source: bool = True) -> str:
         """Add a package if not already present in the repository.
 
         Args:
             path: Absolute package path.
             remove_source: If True, remove the source file once moved in the repository.
         """
+        return ""
 
     async def remove(self, filename: str) -> None:
         """Add a package if present in the repository.

@@ -116,16 +116,20 @@ class Repository(RepositoryBase):
             await self._exec(*_RPM, "--import", self._gpg_public_key)
         return self
 
-    async def add(self, path: str, remove_source: bool = True) -> None:
+    async def add(self, path: str, remove_source: bool = True) -> str:
         """Add a package if not already present in the repository.
 
         Args:
             path: Absolute package path.
             remove_source: If True, remove the source file once moved in the repository.
+
+        Returns:
+            Resulting package path once added to the repository.
         """
         filename = basename(path)
+        dst_path = self._storage.join(filename)
         if splitext(filename)[0] in self._pkgs["primary"]:
-            if path != self._storage.join(filename):
+            if path != dst_path:
                 await self._storage.remove(path, absolute=True)
             raise PackageAlreadyExists(filename)
 
@@ -138,11 +142,12 @@ class Repository(RepositoryBase):
             pkgs.setdefault(nvra, pkg)
 
         transactions = [self._storage.put_file(filename)]
-        if remove_source and path != self._storage.join(filename):
+        if remove_source and path != dst_path:
             transactions.append(self._storage.remove(path, absolute=True))
 
         await gather(*transactions)
         await self._storage.remove_tmp(filename)
+        return dst_path  # type: ignore
 
     async def remove(self, filename: str) -> None:
         """Remove a package if present in the repository.

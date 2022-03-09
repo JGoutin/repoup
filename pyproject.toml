@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "repoup"
-version = "1.0.0-beta.4"
+version = "1.0.0-beta.5"
 description = "Serverless package repository updater"
 authors = ["J.Goutin <jgoutin@accelize.com>"]
 license = "AGPL-3.0-or-later"

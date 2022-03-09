@@ -1,7 +1,7 @@
 """Storage."""
 from abc import ABC, abstractmethod
-from os import remove
-from os.path import join
+from os import makedirs, remove
+from os.path import dirname, join
 from tempfile import TemporaryDirectory
 from typing import List
 
@@ -44,7 +44,9 @@ class StorageBase(ABC, AsyncContext):
         Returns:
             Absolute temporary path.
         """
-        return join(self._tmp, *parts)
+        path = join(self._tmp, *parts)
+        makedirs(dirname(path), exist_ok=True)
+        return path
 
     @abstractmethod
     async def put_object(

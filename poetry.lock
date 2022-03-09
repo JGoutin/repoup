@@ -193,8 +193,8 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "boto3-stubs"
-version = "1.21.14"
-description = "Type annotations for boto3 1.21.14 generated with mypy-boto3-builder 7.3.0"
+version = "1.21.15"
+description = "Type annotations for boto3 1.21.15 generated with mypy-boto3-builder 7.3.0"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
@@ -526,8 +526,8 @@ crt = ["awscrt (==0.12.5)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.24.14"
-description = "Type annotations for botocore 1.24.14 generated with mypy-boto3-builder 7.3.0"
+version = "1.24.15"
+description = "Type annotations for botocore 1.24.15 generated with mypy-boto3-builder 7.3.0"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
@@ -1589,16 +1589,16 @@ boto3 = [
     {file = "boto3-1.20.24.tar.gz", hash = "sha256:739705b28e6b2329ea3b481ba801d439c296aaf176f7850729147ba99bbf8a9a"},
 ]
 boto3-stubs = [
-    {file = "boto3-stubs-1.21.14.tar.gz", hash = "sha256:9e0510056441f109b89c3c939da8e0572bec7f9adb7c69201a186d217ef8154d"},
-    {file = "boto3_stubs-1.21.14-py3-none-any.whl", hash = "sha256:fe96246f51766cf70ae2fcaad8595c27ed072d268e622991cab88869868e0427"},
+    {file = "boto3-stubs-1.21.15.tar.gz", hash = "sha256:3178bab13fdfdebe3f09d23a416eb2b17864b73f71c92a58801ec8db4a9cc299"},
+    {file = "boto3_stubs-1.21.15-py3-none-any.whl", hash = "sha256:ff6762d64c1eaaa77aafb71fcdd36b78ab58b9ec1f4d347c35a8dff6591db8a2"},
 ]
 botocore = [
     {file = "botocore-1.23.24-py3-none-any.whl", hash = "sha256:e78d48c50c8c013fb9b362c6202fece2fe868edfd89b51968080180bdff41617"},
     {file = "botocore-1.23.24.tar.gz", hash = "sha256:43006b4f52d7bb655319d3da0f615cdbee7762853acc1ebcb1d49f962e6b4806"},
 ]
 botocore-stubs = [
-    {file = "botocore-stubs-1.24.14.tar.gz", hash = "sha256:fc83d0a8e1b1a195d3a5aafc8a701020ba98f07231667b56583b85823613c9ed"},
-    {file = "botocore_stubs-1.24.14-py3-none-any.whl", hash = "sha256:9ec990865498b9ed6d62c40fb96d605bdcd63f93c30464cfb2e7b1cdc0ad3486"},
+    {file = "botocore-stubs-1.24.15.tar.gz", hash = "sha256:0ea443ff16db3a70f305eafe3b19698944a971a3c22e8e6c44e8365f1e961593"},
+    {file = "botocore_stubs-1.24.15-py3-none-any.whl", hash = "sha256:e6a9029fa11ac943cf5ab99d4f29ff958b00c52d8470585ecee3da6edd3495e5"},
 ]
 brotli = [
     {file = "Brotli-1.0.9-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:268fe94547ba25b58ebc724680609c8ee3e5a843202e9a381f6f9c5e8bdb5c70"},

@@ -133,7 +133,7 @@ class Repository(RepositoryBase):
                 await self._storage.remove(path, absolute=True)
             raise PackageAlreadyExists(filename)
 
-        await self._storage.get_file(path, absolute=True)
+        await self._storage.get_file(path, dst=filename, absolute=True)
         await self._sign_pkg(filename)
 
         pkg = cr.package_from_rpm(self._storage.tmp_join(filename), self._checksum_type)

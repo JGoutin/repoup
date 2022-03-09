@@ -39,9 +39,9 @@ async def test_add_remove_package(storage_helper: StorageHelper) -> None:
     from repoup.exceptions import PackageAlreadyExists
 
     # Add package
-    storage_helper.put(PKG_PATH, PKG)
-    async with (await get_repository(PKG)) as repo:
-        await repo.add(PKG)
+    storage_helper.put(PKG_PATH, PKG_PATH)
+    async with (await get_repository(PKG_PATH)) as repo:
+        await repo.add(PKG_PATH)
 
     content = storage_helper.keys
     assert PKG_REPO_PATH in content
@@ -53,10 +53,10 @@ async def test_add_remove_package(storage_helper: StorageHelper) -> None:
                 assert PKG_NAME in decompress(storage_helper.get(key)).decode()
 
     # Add already existing package
-    storage_helper.put(PKG_PATH, PKG)
-    async with (await get_repository(PKG)) as repo:
+    storage_helper.put(PKG_PATH, PKG_PATH)
+    async with (await get_repository(PKG_PATH)) as repo:
         with pytest.raises(PackageAlreadyExists):
-            await repo.add(PKG)
+            await repo.add(PKG_PATH)
     assert PKG_REPO_PATH in storage_helper.keys
 
     # Add already existing package, inplace

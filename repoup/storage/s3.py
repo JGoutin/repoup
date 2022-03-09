@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from os import getenv
 from posixpath import join
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 from aioboto3 import Session
 from botocore.exceptions import ClientError
@@ -102,16 +102,21 @@ class Storage(StorageBase):
                 await self._client.get_object(Bucket=self._bucket, Key=src)
             )["Body"].read()
 
-    async def get_file(self, path: str, absolute: bool = False) -> None:
+    async def get_file(
+        self, path: str, dst: Optional[str] = None, absolute: bool = False
+    ) -> None:
         """Get file.
 
         Args:
             path: Relative path.
-            absolute: If True, use absolute path
+            dst: Destination relative path. If not specified, user "path".
+            absolute: If True, use absolute path for "path".
         """
         src = self.join(path, absolute=absolute)
         with _s3_exception_handler(src):
-            await self._client.download_file(self._bucket, src, self.tmp_join(path))
+            await self._client.download_file(
+                self._bucket, src, self.tmp_join(dst or path)
+            )
 
     async def put_file(self, path: str, absolute: bool = False) -> None:
         """Put file.

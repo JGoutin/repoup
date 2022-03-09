@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from os import makedirs, remove
 from os.path import dirname, join
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Optional
 
 from repoup.lib import AsyncContext, import_component
 
@@ -73,12 +73,15 @@ class StorageBase(ABC, AsyncContext):
         """
 
     @abstractmethod
-    async def get_file(self, relpath: str, absolute: bool = False) -> None:
+    async def get_file(
+        self, path: str, dst: Optional[str] = None, absolute: bool = False
+    ) -> None:
         """Get file.
 
         Args:
-            relpath: Relative path.
-            absolute: If True, use absolute path
+            path: Relative path.
+            dst: Destination relative path. If not specified, user "path".
+            absolute: If True, use absolute path for "path".
         """
 
     @abstractmethod

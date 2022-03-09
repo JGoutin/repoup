@@ -4,7 +4,7 @@ from asyncio import gather, to_thread
 from os import getenv
 from os.path import isfile, join, splitext
 from tempfile import TemporaryDirectory
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from repoup.lib import AsyncContext, import_component, run
 from repoup.storage import get_storage
@@ -287,16 +287,19 @@ class RepositoryBase(ABC, AsyncContext):
         """
 
 
-async def get_repository(filename: str, **kwargs: Any) -> RepositoryBase:
+async def get_repository(
+    filename: str, variables: Optional[Dict[str, str]] = None, **kwargs: Any
+) -> RepositoryBase:
     """Get repository object to use with a package.
 
     Args:
         filename: Package filename.
+        variables: Extra variables to use to determinate repository URL.
         kwargs: Repository keyword arguments.
 
     Returns:
         Repository object
     """
     repo_class = import_component("repository", splitext(filename)[1].lstrip("."))
-    url = await repo_class.find_repository(filename)
+    url = await repo_class.find_repository(filename, **(variables or dict()))
     return repo_class(url, **kwargs)  # type: ignore

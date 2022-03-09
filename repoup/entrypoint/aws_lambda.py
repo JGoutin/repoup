@@ -94,7 +94,7 @@ def handler(event: Dict[str, Any], _: Any) -> None:
         action = "remove"
     else:
         return print(f"Ignoring unsupported event: {event_name}")
-    obj = record["s3"]["object"]
-    key = obj["key"]
-    url = LOOP.run_until_complete(_async_handler(action, obj["Bucket"], key))
+    s3 = record["s3"]
+    key = s3["object"]["key"]
+    url = LOOP.run_until_complete(_async_handler(action, s3["bucket"]["name"], key))
     print(f'{action.capitalize().rstrip("e")}ed package "{key}" to repository "{url}"')

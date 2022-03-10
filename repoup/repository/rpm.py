@@ -155,6 +155,7 @@ class Repository(RepositoryBase):
         Args:
             filename: Package filename.
         """
+        filename = basename(filename)
         nvra = splitext(filename)[0]
         for record_pkgs in self._pkgs.values():
             try:

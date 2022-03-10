@@ -47,7 +47,7 @@ pip install repoup[rpm,speedups]
 
 ## Packages and metadata signature extra requirements:
 
-The `gnupg` (Version 2) command is required.
+The `gnupg` (Version 2.1 or more) command is required.
 
 GPG keys with passwords also requires that the `gpg-agent` is not already started or is 
 started with the `--allow-preset-passphrase` parameter.

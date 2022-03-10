@@ -11,8 +11,8 @@ This lambda is intended to be triggered on S3 events "ObjectCreated:*" and
 "ObjectRemoved:*".
 """
 from asyncio import get_event_loop
-from os import chmod, environ
-from os.path import realpath
+from os import close, environ, write
+from tempfile import mkstemp
 from typing import Any, Dict
 
 from boto3 import client
@@ -48,10 +48,12 @@ def _init_gpg() -> None:
     except KeyError:
         return
 
-    rep.GPG_PRIVATE_KEY = key_path = realpath("gpg_key.asc")
-    with open(key_path, "wt") as key:
-        key.write(key_content)
-    chmod(key_path, 0o600)
+    fd, key_path = mkstemp(suffix=".asc")
+    try:
+        write(fd, key_content.encode())
+    finally:
+        close(fd)
+    rep.GPG_PRIVATE_KEY = key_path
 
     try:
         rep.GPG_PASSWORD = params["GPG_PASSWORD"]

@@ -136,9 +136,16 @@ class Storage(StorageBase):
             path: Absolute path.
             absolute: If True, use absolute path
         """
-        await self._client.delete_object(
-            Bucket=self._bucket, Key=self.join(path, absolute=absolute)
-        )
+        key = self.join(path, absolute=absolute)
+        try:
+            # Only delete if exists to avoid issues when triggering this function
+            # with "ObjectRemoved:*" S3 events
+            await self._client.head_object(Bucket=self._bucket, Key=key)
+        except ClientError as exception:
+            if exception.response["Error"]["Code"] in ("NoSuchKey", "404"):
+                return
+            raise  # pragma: no cover
+        await self._client.delete_object(Bucket=self._bucket, Key=key)
 
     async def invalidate_cache(self, paths: List[str]) -> None:
         """Invalidate Cloudfront cache of specified files.

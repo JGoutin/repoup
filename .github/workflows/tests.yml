@@ -8,6 +8,7 @@ on:
       - "LICENSE"
       - ".gitignore"
       - ".pre-commit-config.yaml"
+      - "**.Dockerfile"
 
 env:
   CACHE_DIR: /tmp/.workflow_cache

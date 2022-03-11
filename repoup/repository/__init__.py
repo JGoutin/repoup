@@ -218,6 +218,7 @@ class RepositoryBase(ABC, AsyncContext):
         if self._gpg_verify:
             await self._gpg_exec("--verify", asc_relpath, relpath)
         await self._storage.put_file(asc_relpath)
+        self._changed_paths.append(self._storage.join(asc_relpath))
 
     async def _gpg_init(self) -> None:
         """Initialize GPG."""

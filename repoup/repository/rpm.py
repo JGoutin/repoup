@@ -221,6 +221,7 @@ class Repository(RepositoryBase):
                 metadata_files.remove(path)
                 self._outdated_files.remove(path)
         if not metadata_files:
+            self._changed_paths.clear()
             return
 
         with open(self._storage.tmp_join(_REPOMD), "wt") as repomd_file:

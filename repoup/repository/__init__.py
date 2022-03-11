@@ -83,7 +83,8 @@ class RepositoryBase(ABC, AsyncContext):
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self._save()
-        await self._storage.invalidate_cache(self._changed_paths)
+        if self._changed_paths:
+            await self._storage.invalidate_cache(self._changed_paths)
         if self._gpg_key is not None and self._gpg_clear:
             await self._gpg_clear_key()
         await super().__aexit__(exc_type, exc_val, exc_tb)

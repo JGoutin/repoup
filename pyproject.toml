@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "repoup"
-version = "1.0.0-beta.6"
+version = "1.0.0-beta.8"
 description = "Serverless package repository updater"
 authors = ["J.Goutin <jgoutin@accelize.com>"]
 license = "AGPL-3.0-or-later"
@@ -86,6 +86,7 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = [
     "tests.conftest",
+    "tests.test_repository_rpm",
     "createrepo_c",
     "aioboto3",
     "uvloop"

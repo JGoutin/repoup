@@ -12,7 +12,8 @@ This lambda is intended to be triggered on S3 events "ObjectCreated:*" and
 """
 from asyncio import get_event_loop
 from os import close, environ, write
-from tempfile import mkstemp
+from os.path import basename
+from tempfile import mkdtemp, mkstemp
 from typing import Any, Dict
 
 from boto3 import client
@@ -48,7 +49,8 @@ def _init_gpg() -> None:
     except KeyError:
         return
 
-    fd, key_path = mkstemp(suffix=".asc")
+    environ["GNUPGHOME"] = gpg_dir = mkdtemp(prefix=".gnupg-")
+    fd, key_path = mkstemp(prefix="key-", suffix=".asc", dir=gpg_dir)
     try:
         write(fd, key_content.encode())
     finally:
@@ -99,4 +101,7 @@ def handler(event: Dict[str, Any], _: Any) -> None:
     s3 = record["s3"]
     key = s3["object"]["key"]
     url = LOOP.run_until_complete(_async_handler(action, s3["bucket"]["name"], key))
-    print(f'{action.capitalize().rstrip("e")}ed package "{key}" to repository "{url}"')
+    print(
+        f'{action.capitalize().rstrip("e")}ed package "{basename(key)}" '
+        f'to repository "{url}"'
+    )

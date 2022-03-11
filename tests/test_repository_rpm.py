@@ -84,6 +84,10 @@ async def test_add_remove_package(storage_helper: StorageHelper) -> None:
 
     assert PKG in storage_helper.keys
 
+    # Do nothing
+    async with (await get_repository(PKG)):
+        pass
+
 
 async def test_add_sign_package(storage_helper: StorageHelper) -> None:
     """Test Add and sign a package."""

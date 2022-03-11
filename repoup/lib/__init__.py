@@ -68,7 +68,7 @@ class AsyncContext:
     def __init__(self) -> None:
         self._exit_stack = AsyncExitStack()
 
-    async def __aenter__(self) -> Any:
+    async def __aenter__(self) -> Any:  # pragma: no cover
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

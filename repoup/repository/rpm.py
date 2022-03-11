@@ -11,7 +11,7 @@ from os import getenv, makedirs
 from os.path import basename, splitext
 from re import IGNORECASE, compile
 from string import Template, ascii_letters
-from typing import Dict, Generator, Optional, Set, Tuple
+from typing import Dict, Generator, List, Optional, Set, Tuple
 
 import createrepo_c as cr
 
@@ -210,13 +210,22 @@ class Repository(RepositoryBase):
         """Save updated repository data."""
         makedirs(self._storage.tmp_join(_REPODATA), exist_ok=True)
         repomd = cr.Repomd()
-        metadata_files = [_REPOMD]
+        metadata_files: List[str] = list()
         for metadata_type in _PKG_METADATA:
             metadata_files.extend(self._save_record(metadata_type, repomd))
         repomd.sort_records()
 
+        for path in tuple(metadata_files):
+            # If metadata files have the same name, there is no changes (Contains hash)
+            if path in self._outdated_files:
+                metadata_files.remove(path)
+                self._outdated_files.remove(path)
+        if not metadata_files:
+            return
+
         with open(self._storage.tmp_join(_REPOMD), "wt") as repomd_file:
             await to_thread(repomd_file.write, repomd.xml_dump())
+        metadata_files.append(_REPOMD)
 
         await gather(
             self._sign_asc(_REPOMD),
@@ -321,7 +330,6 @@ class Repository(RepositoryBase):
         record.fill(self._checksum_type)
         record.rename_file()
         path = record.location_href
-        self._outdated_files.discard(path)
         repomd.set_record(record)
         return path
 

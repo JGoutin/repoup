@@ -80,16 +80,19 @@ class StorageBase(ABC, AsyncContext):
 
         Args:
             path: Relative path.
-            dst: Destination relative path. If not specified, user "path".
+            dst: Destination relative path. If not specified, use "path".
             absolute: If True, use absolute path for "path".
         """
 
     @abstractmethod
-    async def put_file(self, relpath: str, absolute: bool = False) -> None:
+    async def put_file(
+        self, path: str, dst: Optional[str] = None, absolute: bool = False
+    ) -> None:
         """Put file.
 
         Args:
-            relpath: Relative path.
+            path: Relative path.
+            dst: Destination relative path. If not specified, use "path".
             absolute: If True, use absolute path
         """
 
@@ -114,6 +117,15 @@ class StorageBase(ABC, AsyncContext):
             remove(self.tmp_join(relpath))
         except FileNotFoundError:
             return
+
+    @abstractmethod
+    async def exists(self, path: str, absolute: bool = False) -> bool:
+        """Return True if file exists.
+
+        Args:
+            path: Relative path.
+            absolute: If True, use absolute path for "path".
+        """
 
     async def invalidate_cache(self, paths: Set[str]) -> None:
         """When the storage is behind a CDN, invalidate the cache of specified files.

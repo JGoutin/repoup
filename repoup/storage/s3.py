@@ -118,15 +118,18 @@ class Storage(StorageBase):
                 self._bucket, src, self.tmp_join(dst or path)
             )
 
-    async def put_file(self, path: str, absolute: bool = False) -> None:
+    async def put_file(
+        self, path: str, dst: Optional[str] = None, absolute: bool = False
+    ) -> None:
         """Put file.
 
         Args:
             path: Relative path.
+            dst: Destination relative path. If not specified, use "path".
             absolute: If True, use absolute path
         """
         await self._client.upload_file(
-            self.tmp_join(path), self._bucket, self.join(path, absolute=absolute)
+            self.tmp_join(path), self._bucket, self.join(dst or path, absolute=absolute)
         )
 
     async def remove(self, path: str, absolute: bool = False) -> None:
@@ -136,16 +139,29 @@ class Storage(StorageBase):
             path: Absolute path.
             absolute: If True, use absolute path
         """
-        key = self.join(path, absolute=absolute)
+        # Only delete if exists to avoid issues when triggering this function
+        # with "ObjectRemoved:*" S3 events
+        if await self.exists(path, absolute=absolute):
+            await self._client.delete_object(
+                Bucket=self._bucket, Key=self.join(path, absolute=absolute)
+            )
+
+    async def exists(self, path: str, absolute: bool = False) -> bool:
+        """Return True if file exists.
+
+        Args:
+            path: Relative path.
+            absolute: If True, use absolute path for "path".
+        """
         try:
-            # Only delete if exists to avoid issues when triggering this function
-            # with "ObjectRemoved:*" S3 events
-            await self._client.head_object(Bucket=self._bucket, Key=key)
+            await self._client.head_object(
+                Bucket=self._bucket, Key=self.join(path, absolute=absolute)
+            )
         except ClientError as exception:
             if exception.response["Error"]["Code"] in ("NoSuchKey", "404"):
-                return
+                return False
             raise  # pragma: no cover
-        await self._client.delete_object(Bucket=self._bucket, Key=key)
+        return True
 
     async def invalidate_cache(self, paths: Set[str]) -> None:
         """Invalidate Cloudfront cache of specified files.

@@ -3,7 +3,7 @@ from asyncio import create_subprocess_exec
 from asyncio.subprocess import DEVNULL, PIPE, STDOUT
 from contextlib import AsyncExitStack
 from importlib import import_module
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 
 def import_component(component: str, element: str) -> Any:
@@ -58,6 +58,18 @@ async def run(
     if check and process.returncode:
         raise RuntimeError(stdout.decode(errors="ignore"))
     return stdout
+
+
+def filter_none(data: Dict[Any, Any]) -> Dict[Any, Any]:
+    """Return a copy of a dict without None values.
+
+    Args:
+        data: dict to filter.
+
+    Returns:
+        Filtered dict.
+    """
+    return {key: value for key, value in data.items() if value is not None}
 
 
 class AsyncContext:

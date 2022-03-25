@@ -32,19 +32,29 @@ RUN dnf install -yq \
       zlib-devel \
  && pip install -q --no-cache-dir --disable-pip-version-check -t . \
       awslambdaric \
-      repoup[aws,rpm,speedups]
+      repoup[aws,deb,rpm,speedups]
 RUN rm -rf bin \
  && python -m compileall . -q -b -j0 -o2 \
  && find . -type f -name '*.py' -delete \
  && find . -type d -name __pycache__ -exec rm -rf {} +
 
+FROM debian AS debsigs-image
+RUN apt update -qq \
+ && cd /opt \
+ && apt download debsigs \
+ && dpkg -x debsigs_* . \
+ && rm -rf /opt/usr/share/doc /opt/usr/share/man *.deb
+
 FROM fedora
 ARG FUNCTION_DIR
 WORKDIR ${FUNCTION_DIR}
 RUN dnf -yq install \
+      binutils \
       gnupg \
+      python-apt \
       rpm-sign \
  && dnf clean -yq all
 COPY --from=build-image ${FUNCTION_DIR} ${FUNCTION_DIR}
+COPY --from=debsigs-image /opt/usr /usr
 ENTRYPOINT ["/usr/bin/python3", "-m", "awslambdaric"]
 CMD ["repoup.entrypoint.aws_lambda.handler"]

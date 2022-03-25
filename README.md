@@ -18,6 +18,7 @@ Features:
 Supported repositories:
 
  * RPM: `.rpm` packages repositories used with DNF/YUM Linux package managers.
+ * DEB: `.deb` packages repositories used with APT Linux package managers.
 
 Supported cloud:
 
@@ -37,6 +38,7 @@ more dependencies using the following extras:
 
 * `speedups`: Optional libraries to improve performance.
 * `rpm`: RPM repositories support.
+* `deb`: DEB repositories support.
 * `aws`: AWS cloud provider support.
 
 For instance:
@@ -44,6 +46,11 @@ For instance:
 ```bash
 pip install repoup[rpm,speedups]
 ```
+
+For DEB repositories, the `python-apt` package is also recommended to improve 
+performance. The version of this package available on PyPI is really outdated, so it is
+recommended to use the version packaged with your OS. Ensure the Python interpreter used
+is the system interpreter in this case or that it can import this package.
 
 ## Packages and metadata signature extra requirements:
 
@@ -64,3 +71,7 @@ and remove the public key to the keyring.
 
 It is possible to set the `RPM_GPG_REQUIRE_SUDO=1` environment variable to 
 automatically use `sudo`. This requires that `sudo` does not require password.
+
+### DEB Packages.
+
+To sign DEB package, the `debsigs` package is required.

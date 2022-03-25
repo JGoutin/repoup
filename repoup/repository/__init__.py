@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from asyncio import gather, to_thread
 from os import getenv
 from os.path import isfile, join, splitext
+from shutil import move
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Optional, Set
 
@@ -150,10 +151,18 @@ class RepositoryBase(ABC, AsyncContext):
 
     async def _clear(self) -> None:
         """Remove deprecated repository files."""
-        await gather(*(self._storage.remove(path) for path in self._to_remove_paths))
+        await gather(
+            *(
+                self._storage.remove(path)
+                for path in (self._to_remove_paths - self._modified_paths)
+            )
+        )
 
     def _mark_for_deletion(self, *path: str) -> None:
         """Mark one or more files for deletion after repository update.
+
+        Before deletion, path that are marked as "modified" are dropped from the list of
+        files to delete.
 
         Args:
             path: Relative path.
@@ -242,25 +251,58 @@ class RepositoryBase(ABC, AsyncContext):
 
         await run(cls._GPG_PRESET_PASSPHRASE, "--preset", key_grip, input=password)
 
-    async def _sign_asc(self, path: str) -> None:
-        """Sign a file using GNUPG.
+    async def _sign_asc(self, path: str, extension: str = "asc") -> None:
+        """Generate a signature file using GNUPG.
 
         Generates an armored detached signature and put in on storage.
 
         Args:
             path: Relative path of file to sign in temporary directory.
+            extension: Signature file extension.
         """
         if self._gpg_key is None:
             return
 
+        sig_path = f"{path}.{extension}"
         await self._gpg_exec(
-            "--default-key", self._gpg_user_id, "--detach-sign", "--armor", path
+            "--default-key",
+            self._gpg_user_id,
+            "--detach-sign",
+            "--armor",
+            "--output",
+            sig_path,
+            path,
         )
-        asc_path = f"{path}.asc"
+
         if self._gpg_verify:
-            await self._gpg_exec("--verify", asc_path, path)
-        await self._storage.put_file(asc_path)
-        self._mark_as_modified(asc_path)
+            await self._gpg_exec("--verify", sig_path, path)
+        await self._storage.put_file(sig_path)
+        self._mark_as_modified(sig_path)
+
+    async def _sign(self, relpath: str) -> None:
+        """Sign a file inplace using GNUPG.
+
+        Args:
+            relpath: Relative path of file to sign in temporary directory.
+        """
+        if self._gpg_key is None:
+            return
+
+        tmp = f"{relpath}.tmp"
+        move(self._storage.tmp_join(relpath), self._storage.tmp_join(tmp))
+        await self._gpg_exec(
+            "--default-key",
+            self._gpg_user_id,
+            "--clearsign",
+            "--armor",
+            "--output",
+            relpath,
+            tmp,
+        )
+        await self._storage.remove_tmp(tmp)
+
+        if self._gpg_verify:
+            await self._gpg_exec("--verify", relpath)
 
     async def _gpg_init(self) -> None:
         """Initialize GPG."""

@@ -41,8 +41,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get -qq update
+          sudo apt-get -qq install debsigs
           sudo apt-get -qq install cmake ninja-build libbz2-dev libmagic-dev libglib2.0-dev libcurl4-openssl-dev libxml2-dev librpm-dev libssl-dev zlib1g-dev libzstd-dev liblzma-dev
-          poetry install -n -E "rpm aws speedups"
+          poetry install -n -E "rpm deb aws speedups"
         env:
           # "createrepo_c" Build options
           CMAKE_ARGS: "-DWITH_ZCHUNK=OFF -DWITH_LIBMODULEMD=OFF"

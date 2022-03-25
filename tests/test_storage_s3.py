@@ -39,7 +39,9 @@ async def test_s3_storage() -> None:
             assert file.read() == content
 
         # Remove object
+        assert await storage.exists(key)
         await storage.remove(key)
+        assert not (await storage.exists(key))
         try:
             await storage.get_object(key)
         except PackageNotFound as error:

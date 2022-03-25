@@ -1,10 +1,4 @@
-"""Update an RPM repository to add or remove packages.
-
-TODO: Improvements
-    - Add support for "prestodelta" records
-    - Add support for "updateinfo" records
-    - Run "rpmlint" before adding package and return result
-"""
+"""Update an RPM repository to add or remove packages."""
 from asyncio import gather, to_thread
 from contextlib import contextmanager
 from os import getenv, makedirs

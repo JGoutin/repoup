@@ -277,7 +277,7 @@ class RepositoryBase(ABC, AsyncContext):
 
     @classmethod
     @abstractmethod
-    async def find_repository(cls, filename: str, **variables: str) -> str:
+    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, str]:
         """Find the repository where to store a package.
 
         Args:
@@ -285,7 +285,7 @@ class RepositoryBase(ABC, AsyncContext):
             variables: Extra variables to use to determinate repository URL.
 
         Returns:
-            Path of the repository related to this package.
+            Repository configuration related to this package.
         """
 
 
@@ -303,5 +303,6 @@ async def get_repository(
         Repository object
     """
     repo_class = import_component("repository", splitext(filename)[1].lstrip("."))
-    url = await repo_class.find_repository(filename, **(variables or dict()))
-    return repo_class(url, **kwargs)  # type: ignore
+    config = await repo_class.find_repository(filename, **(variables or dict()))
+    config.update(kwargs)
+    return repo_class(**config)  # type: ignore

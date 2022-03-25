@@ -1,5 +1,6 @@
 """Test repository base features."""
 from os.path import isfile, join
+from typing import Dict
 
 import pytest
 
@@ -33,7 +34,7 @@ class MockRepository(RepositoryBase):
         """Save updated repository."""
 
     @classmethod
-    async def find_repository(cls, filename: str, **variables: str) -> str:
+    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, str]:
         """Find the repository where to store a package.
 
         Args:
@@ -43,7 +44,7 @@ class MockRepository(RepositoryBase):
         Returns:
             Path of the repository related to this package.
         """
-        return ""
+        return dict(url="")
 
 
 async def test_repository_no_gpg() -> None:

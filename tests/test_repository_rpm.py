@@ -139,7 +139,7 @@ async def test_find_repository() -> None:
     find_repository = rpm.Repository.find_repository
     try:
         # Test valid package name
-        assert await find_repository(PKG) == REPO_URL
+        assert (await find_repository(PKG))["url"] == REPO_URL
 
         # Test no BASEURL
         rpm.BASEURL = None
@@ -157,16 +157,15 @@ async def test_find_repository() -> None:
 
         # Test Package without "dist" but without "$releasever" in BASEURL
         rpm.BASEURL = "s3://bucket/$basearch"
-        assert (
-            await find_repository("centos-stream-release-8.6-1.noarch.rpm")
-            == "s3://bucket/noarch"
-        )
+        assert (await find_repository("centos-stream-release-8.6-1.noarch.rpm"))[
+            "url"
+        ] == "s3://bucket/noarch"
 
         # Test BASEURL with extra (Non RPM) variable
         rpm.BASEURL = "s3://bucket/$channel/$basearch"
-        assert (
-            await find_repository(PKG, channel="stable") == "s3://bucket/stable/noarch"
-        )
+        assert (await find_repository(PKG, channel="stable"))[
+            "url"
+        ] == "s3://bucket/stable/noarch"
         rpm.BASEURL = BASEURL
 
     finally:

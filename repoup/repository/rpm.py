@@ -372,7 +372,7 @@ class Repository(RepositoryBase):
             await self._exec(*_RPM, "--erase", "--allmatches", key_id.decode())
 
     @classmethod
-    async def find_repository(cls, filename: str, **variables: str) -> str:
+    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, str]:
         """Find the repository where to store a package.
 
         Based on the "baseurl" field of the repository configuration.
@@ -388,7 +388,7 @@ class Repository(RepositoryBase):
                 repository URL.
 
         Returns:
-            Path of the repository related to this package.
+            Repository configuration related to this package.
         """
         if BASEURL is None:
             raise ValueError(
@@ -425,4 +425,4 @@ class Repository(RepositoryBase):
 
             variables["releasever"] = dist.lstrip(ascii_letters)
 
-        return Template(BASEURL).substitute(variables)
+        return dict(url=Template(BASEURL).substitute(variables))

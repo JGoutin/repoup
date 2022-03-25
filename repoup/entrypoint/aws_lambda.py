@@ -10,7 +10,7 @@ The GPG key content must be passed to GPG_PRIVATE_KEY instead of the key path.
 This lambda is intended to be triggered on S3 events "ObjectCreated:*" and
 "ObjectRemoved:*".
 """
-from asyncio import get_event_loop
+from asyncio import new_event_loop
 from os import close, environ, write
 from os.path import basename
 from tempfile import mkdtemp, mkstemp
@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover
 else:
     uvloop.install()
 
-LOOP = get_event_loop()
+LOOP = new_event_loop()
 
 
 def _init_gpg() -> None:

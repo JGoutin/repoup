@@ -128,7 +128,8 @@ class Repository(RepositoryBase):
         """
         filename = basename(path)
         dst_path = self._storage.join(filename)
-        if splitext(filename)[0] in self._pkgs["primary"]:
+        pkg_name = splitext(filename)[0]
+        if pkg_name in self._pkgs["primary"]:
             if path != dst_path:
                 await self._storage.remove(path, absolute=True)
             raise PackageAlreadyExists(filename)
@@ -138,6 +139,11 @@ class Repository(RepositoryBase):
 
         pkg = cr.package_from_rpm(self._storage.tmp_join(filename), self._checksum_type)
         nvra = pkg.nvra()
+        if not (pkg_name == nvra or pkg_name == pkg.nevra()):
+            raise InvalidPackage(
+                "RPM package filename must match NVRA or NEVRA from its metadata: "
+                + nvra
+            )
         for pkgs in self._pkgs.values():
             pkgs.setdefault(nvra, pkg)
 

@@ -36,7 +36,7 @@ async def test_initialize_empty_repository(storage_helper: StorageHelper) -> Non
 
 async def test_add_remove_package(storage_helper: StorageHelper) -> None:
     """Test repository with add/remove packages."""
-    from repoup.exceptions import PackageAlreadyExists
+    from repoup.exceptions import InvalidPackage, PackageAlreadyExists
 
     # Add package
     storage_helper.put(PKG_PATH, PKG_PATH)
@@ -87,6 +87,14 @@ async def test_add_remove_package(storage_helper: StorageHelper) -> None:
     # Do nothing
     async with (await get_repository(PKG)):
         pass
+
+    # Test package name not matching NVRA
+    bad_pkg_path = f"tests/data/os{PKG}"
+    storage_helper.put(PKG_PATH, bad_pkg_path)
+    async with (await get_repository(PKG)) as repo:
+        with pytest.raises(InvalidPackage):
+            await repo.add(bad_pkg_path)
+    assert PKG_REPO_PATH in storage_helper.keys
 
 
 async def test_add_sign_package(storage_helper: StorageHelper) -> None:

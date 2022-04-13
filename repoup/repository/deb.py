@@ -161,12 +161,15 @@ class Repository(RepositoryBase):
         self._previous_indexes_hashes: Dict[str, Set[str]] = dict()
         self._updated_indexes: Set[str] = set()
 
-    async def add(self, path: str, remove_source: bool = True) -> str:
+    async def add(
+        self, path: str, remove_source: bool = True, sign: bool = True
+    ) -> str:
         """Add a package if not already present in the repository.
 
         Args:
             path: Absolute package path.
             remove_source: If True, remove the source file once moved in the repository.
+            sign: If True, sign the package before adding it to the repository.
 
         Returns:
             Resulting package path once added to the repository.
@@ -185,7 +188,7 @@ class Repository(RepositoryBase):
             pkg = file.debcontrol()
 
         self._check_pkg(parsed_fields, pkg)
-        signed = await self._sign_pkg(tmp_path)
+        signed = await self._sign_pkg(tmp_path, sign)
 
         name = pkg["Package"]
         pkg["Filename"] = dst_path
@@ -460,16 +463,17 @@ class Repository(RepositoryBase):
             self._path_contents, DEFAULT_CONTENTS_COMPRESSION
         )
 
-    async def _sign_pkg(self, path: str) -> bool:
+    async def _sign_pkg(self, path: str, sign: bool) -> bool:
         """Sign DEB package. Must be in temporary directory.
 
         Args:
             path: Package path.
+            sign: If True, sign package.
 
         Returns:
             True if package was signed.
         """
-        if self._gpg_key is None:
+        if self._gpg_key is None or not sign:
             return False
 
         await self._exec("debsigs", "--sign=origin", "-k", self._gpg_user_id, path)

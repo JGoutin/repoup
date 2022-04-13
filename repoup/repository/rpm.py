@@ -105,12 +105,15 @@ class Repository(RepositoryBase):
             await self._exec(*_RPM, "--import", self._gpg_public_key)
         return self
 
-    async def add(self, path: str, remove_source: bool = True) -> str:
+    async def add(
+        self, path: str, remove_source: bool = True, sign: bool = True
+    ) -> str:
         """Add a package if not already present in the repository.
 
         Args:
             path: Absolute package path.
             remove_source: If True, remove the source file once moved in the repository.
+            sign: If True, sign the package before adding it to the repository.
 
         Returns:
             Resulting package path once added to the repository.
@@ -124,7 +127,7 @@ class Repository(RepositoryBase):
             raise PackageAlreadyExists(filename)
 
         await self._storage.get_file(path, dst=filename, absolute=True)
-        signed = await self._sign_pkg(filename)
+        signed = await self._sign_pkg(filename, sign)
 
         pkg = cr.package_from_rpm(self._storage.tmp_join(filename), self._checksum_type)
         nvra = pkg.nvra()
@@ -336,16 +339,17 @@ class Repository(RepositoryBase):
         repomd.set_record(record)
         return path
 
-    async def _sign_pkg(self, filename: str) -> bool:
+    async def _sign_pkg(self, filename: str, sign: bool) -> bool:
         """Sign RPM package. Must be in temporary directory.
 
         Args:
             filename: package
+            sign: If True, sign package.
 
         Returns:
             True if the package was signed.
         """
-        if self._gpg_key is None:
+        if self._gpg_key is None or not sign:
             return False
 
         await self._exec(

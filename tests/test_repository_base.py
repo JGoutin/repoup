@@ -11,12 +11,18 @@ from tests.conftest import DIR_PATH
 class MockRepository(RepositoryBase):
     """Test Repository."""
 
-    async def add(self, path: str, remove_source: bool = True) -> str:
+    async def add(
+        self, path: str, remove_source: bool = True, sign: bool = True
+    ) -> str:
         """Add a package if not already present in the repository.
 
         Args:
             path: Absolute package path.
             remove_source: If True, remove the source file once moved in the repository.
+            sign: If True, sign the package before adding it to the repository.
+
+        Returns:
+            Resulting package path once added to the repository.
         """
         return ""
 

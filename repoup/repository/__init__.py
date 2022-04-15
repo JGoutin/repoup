@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from asyncio import gather, to_thread
 from os import getenv
-from os.path import isfile, join, splitext
+from os.path import isfile, join, splitext, dirname
 from shutil import move
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Optional, Set
@@ -89,6 +89,7 @@ class RepositoryBase(ABC, AsyncContext):
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         await self._save()
         transactions = [self._clear()]
+        self._invalidate_dirs()
         if self._to_invalidate_paths:
             transactions.append(
                 self._storage.invalidate_cache(self._to_invalidate_paths)
@@ -361,6 +362,16 @@ class RepositoryBase(ABC, AsyncContext):
         """Clear the key from GPG."""
         await self._gpg_exec("--delete-secret-key", self._gpg_fingerprint)
         await self._gpg_exec("--delete-key", self._gpg_fingerprint)
+
+    def _invalidate_dirs(self) -> None:
+        """Add modified files directories to cache invalidation."""
+        add = self._to_invalidate_paths.add
+        to_abs = self._storage.join
+        for path in self._modified_paths | self._to_remove_paths:
+            path = to_abs(path)
+            while "/" in path:
+                path = dirname(path)
+                add(f"{path}/")
 
     @classmethod
     @abstractmethod

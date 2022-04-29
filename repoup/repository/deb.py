@@ -18,7 +18,7 @@ from string import Template
 from typing import IO, Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from debian.deb822 import Deb822, Packages, Release
-from debian.debfile import DebFile
+from debian.debfile import DebFile, DebError
 
 try:
     import apt_pkg  # noqa
@@ -183,9 +183,12 @@ class Repository(RepositoryBase):
         await self._storage.get_file(path, dst=dst_path, absolute=True)
         tmp_path = self._storage.tmp_join(dst_path)
 
-        with DebFile(tmp_path) as file:
-            pkg_files = [pkg_file.decode() for pkg_file in file.md5sums()]
-            pkg = file.debcontrol()
+        try:
+            with DebFile(tmp_path) as file:
+                pkg_files = [pkg_file.decode() for pkg_file in file.md5sums()]
+                pkg = file.debcontrol()
+        except DebError as error:
+            raise InvalidPackage(str(error))
 
         self._check_pkg(parsed_fields, pkg)
         signed = await self._sign_pkg(tmp_path, sign)

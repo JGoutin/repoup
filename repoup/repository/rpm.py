@@ -5,7 +5,7 @@ from os import getenv, makedirs
 from os.path import basename, splitext
 from re import IGNORECASE, compile
 from string import Template, ascii_letters
-from typing import Dict, Generator, List, Optional, Set, Tuple
+from typing import Dict, Generator, List, Optional, Set, Tuple, Union, Iterable
 
 import createrepo_c as cr
 
@@ -35,6 +35,9 @@ _DIST_TAG = "%{?dist}"
 #: RPM repository base URL to use. Support RPM variables like $releasever, $basearch.
 BASEURL = getenv("RPM_BASEURL", None)
 
+#: Comma separated list of default supported "$basearch" values
+BASEARCHS = getenv("RPM_BASEARCHS", "x86_64,aarch64").split(",")
+
 #: Checksum type to use in metadata.
 #: See "createrepo_c" documentation for possible values.
 CHECKSUM_TYPE = int(getenv("RPM_CHECKSUM_TYPE", cr.SHA256))
@@ -62,6 +65,9 @@ class Repository(RepositoryBase):
         checksum_type: Checksum type to use.
         compression: Compression to use for metadata.
         db_compression: Compression to use for database.
+        basearchs: Supported repository architectures. "noarch" packages are
+            added to all supported architecture, other packages are added to their
+            architecture only.
     """
 
     __slots__ = [
@@ -70,6 +76,8 @@ class Repository(RepositoryBase):
         "_outdated_files",
         "_compression",
         "_db_compression",
+        "_basearchs",
+        "_basearch_path",
     ]
 
     def __init__(
@@ -83,7 +91,9 @@ class Repository(RepositoryBase):
         checksum_type: int = CHECKSUM_TYPE,
         compression: int = COMPRESSION,
         db_compression: int = DB_COMPRESSION,
+        basearchs: Optional[List[str]] = None,
     ) -> None:
+        url, basearch_path = url.split("$basearch", 1)
         super().__init__(
             url,
             gpg_private_key=gpg_private_key,
@@ -92,12 +102,12 @@ class Repository(RepositoryBase):
             gpg_clear=gpg_clear,
         )
         self._checksum_type = checksum_type
-        self._pkgs: Dict[str, Dict[str, cr.Package]] = dict(
-            primary=dict(), filelists=dict(), other=dict(), updateinfo=dict()
-        )
+        self._pkgs: Dict[str, Dict[str, Dict[str, cr.Package]]] = dict()
         self._outdated_files: Set[str] = set()
         self._compression = compression
         self._db_compression = db_compression
+        self._basearchs = BASEARCHS if basearchs is None else basearchs
+        self._basearch_path = basearch_path
 
     async def __aenter__(self) -> "Repository":
         await super().__aenter__()
@@ -107,7 +117,7 @@ class Repository(RepositoryBase):
 
     async def add(
         self, path: str, remove_source: bool = True, sign: bool = True
-    ) -> str:
+    ) -> List[str]:
         """Add a package if not already present in the repository.
 
         Args:
@@ -116,15 +126,10 @@ class Repository(RepositoryBase):
             sign: If True, sign the package before adding it to the repository.
 
         Returns:
-            Resulting package path once added to the repository.
+            Resulting package path(s) once added to the repository.
         """
         filename = basename(path)
-        dst_path = self._storage.join(filename)
         pkg_name = splitext(filename)[0]
-        if pkg_name in self._pkgs["primary"]:
-            if path != dst_path:
-                await self._storage.remove(path, absolute=True)
-            raise PackageAlreadyExists(filename)
 
         await self._storage.get_file(path, dst=filename, absolute=True)
         signed = await self._sign_pkg(filename, sign)
@@ -136,20 +141,37 @@ class Repository(RepositoryBase):
                 "RPM package filename must match NVRA or NEVRA from its metadata: "
                 + nvra
             )
-        pkg.location_href = filename
-        for pkgs in self._pkgs.values():
-            pkgs.setdefault(nvra, pkg)
+        archs = self._get_archs(pkg.arch)
+        await self._load_archs(archs)
 
+        dst_paths = [
+            self._storage.join(self._arch_path(filename, arch)) for arch in archs
+        ]
+        if all(pkg_name in self._pkgs[arch]["primary"] for arch in archs):
+            if all(path != dst_path for dst_path in dst_paths):
+                await self._storage.remove(path, absolute=True)
+            raise PackageAlreadyExists(filename)
+
+        pkg.location_href = filename
         transactions = []
-        if signed or path != dst_path:
-            transactions.append(self._storage.put_file(filename))
-        self._mark_as_modified(filename, invalidate=False)
-        if remove_source and path != dst_path:
+        for arch, dst_path in zip(archs, dst_paths):
+            pkg_path = self._arch_path(filename, arch)
+
+            for pkgs in self._pkgs[arch].values():
+                pkgs.setdefault(nvra, pkg)
+
+            if signed or pkg_path != dst_path:
+                transactions.append(self._storage.put_file(filename, dst=pkg_path))
+                self._mark_as_modified(pkg_path, invalidate=False)
+            else:
+                remove_source = False
+
+        if remove_source:
             transactions.append(self._storage.remove(path, absolute=True))
 
         await gather(*transactions)
         await self._storage.remove_tmp(filename)
-        return dst_path  # type: ignore
+        return dst_paths
 
     async def remove(self, filename: str) -> None:
         """Remove a package if present in the repository.
@@ -159,42 +181,101 @@ class Repository(RepositoryBase):
         """
         filename = basename(filename)
         nvra = splitext(filename)[0]
-        for record_pkgs in self._pkgs.values():
+        archs = self._get_archs(self._parse_nevra(filename)["arch"])
+        await self._load_archs(archs)
+        for arch in archs:
             try:
-                del record_pkgs[nvra]
+                pkgs = self._pkgs[arch]
             except KeyError:
                 continue
-        self._mark_for_deletion(filename)
+            found = False
+            for record_pkgs in pkgs.values():
+                try:
+                    del record_pkgs[nvra]
+                    found = True
+                except KeyError:
+                    continue
+            if found:
+                self._mark_for_deletion(self._arch_path(filename, arch))
 
     async def _load(self) -> None:
         """Load current repository data if exists."""
-        makedirs(self._storage.tmp_join(_REPODATA), exist_ok=True)
+
+    async def _load_arch(self, arch: str) -> None:
+        """Load architecture repository data if exists.
+
+        Args:
+            arch: Architecture.
+        """
         try:
-            await self._storage.get_file(_REPOMD)
-        except PackageNotFound:
-            return
+            self._pkgs[arch]
+        except KeyError:
+            self._init_arch(arch)
+            makedirs(
+                self._storage.tmp_join(self._arch_path(_REPODATA, arch)), exist_ok=True
+            )
+            repomd_path = self._arch_path(_REPOMD, arch)
+            try:
+                await self._storage.get_file(repomd_path)
+            except PackageNotFound:
+                return
 
-        repomd = cr.Repomd()
-        cr.xml_parse_repomd(self._storage.tmp_join(_REPOMD), repomd)
+            repomd = cr.Repomd()
+            cr.xml_parse_repomd(self._storage.tmp_join(repomd_path), repomd)
 
-        records = dict()
-        for record in repomd.records:
-            self._outdated_files.add(record.location_href)
-            if record.type in _PKG_METADATA:
-                records[record.type] = record.location_href
+            records = dict()
+            for record in repomd.records:
+                self._outdated_files.add(record.location_href)
+                if record.type in _PKG_METADATA:
+                    records[record.type] = record.location_href
 
-        await gather(*(self._storage.get_file(path) for path in records.values()))
-        for record_type, path in records.items():
-            self._load_record(record_type, path)
+            await gather(
+                *(
+                    self._storage.get_file(self._arch_path(path, arch))
+                    for path in records.values()
+                )
+            )
+            for record_type, path in records.items():
+                self._load_record(record_type, path, arch)
 
-    def _load_record(self, record_type: str, path: str) -> None:
+    async def _load_archs(self, archs: Iterable[str]) -> None:
+        """Load architecture repository data for a list of architectures.
+
+        Args:
+            archs: Architectures.
+        """
+        await gather(*(self._load_arch(arch) for arch in archs))
+
+    def _get_archs(self, arch: str) -> Iterable[str]:
+        """Get full list of packages architectures from NEVRA architecture.
+
+        Args:
+            arch: Architecture value from NEVRA.
+
+        Returns:
+            Architectures.
+        """
+        return self._basearchs if arch == "noarch" else (arch,)
+
+    def _init_arch(self, arch: str) -> None:
+        """Initialize architecture repository data.
+
+        Args:
+            arch: Architecture.
+        """
+        self._pkgs[arch] = dict(
+            primary=dict(), filelists=dict(), other=dict(), updateinfo=dict()
+        )
+
+    def _load_record(self, record_type: str, path: str, arch: str) -> None:
         """Load record from XML file.
 
         Args:
             record_type: Record type.
             path: Record file path.
+            arch: Architecture.
         """
-        packages = self._pkgs[record_type]
+        packages = self._pkgs[arch][record_type]
 
         def add_pkg(pkg: cr.Package) -> None:
             """Add Package to repository packages.
@@ -205,16 +286,29 @@ class Repository(RepositoryBase):
             packages[pkg.nvra()] = pkg
 
         getattr(cr, f"xml_parse_{record_type}")(
-            self._storage.tmp_join(path), pkgcb=add_pkg
+            self._storage.tmp_join(self._arch_path(path, arch)), pkgcb=add_pkg
         )
 
     async def _save(self) -> None:
         """Save updated repository data."""
-        makedirs(self._storage.tmp_join(_REPODATA), exist_ok=True)
+        if not self._pkgs:
+            for arch in BASEARCHS:
+                self._init_arch(arch)
+        await gather(*(self._save_arch(arch) for arch in self._pkgs))
+
+    async def _save_arch(self, arch: str) -> None:
+        """Save updated architecture repository data.
+
+        Args:
+            arch: Architecture.
+        """
+        makedirs(
+            self._storage.tmp_join(self._arch_path(_REPODATA, arch)), exist_ok=True
+        )
         repomd = cr.Repomd()
         metadata_files: List[str] = list()
         for metadata_type in _PKG_METADATA:
-            metadata_files.extend(self._save_record(metadata_type, repomd))
+            metadata_files.extend(self._save_record(metadata_type, repomd, arch))
         repomd.sort_records()
 
         for path in tuple(metadata_files):
@@ -226,81 +320,89 @@ class Repository(RepositoryBase):
         if not metadata_files:
             return
 
-        self._mark_as_modified(_REPOMD)
+        repomd_path = self._arch_path(_REPOMD, arch)
+        self._mark_as_modified(repomd_path)
         self._mark_as_modified(*metadata_files, invalidate=False)
         self._mark_for_deletion(*self._outdated_files)
 
-        with open(self._storage.tmp_join(_REPOMD), "wt") as repomd_file:
+        with open(self._storage.tmp_join(repomd_path), "wt") as repomd_file:
             await to_thread(repomd_file.write, repomd.xml_dump())
 
-        metadata_files.append(_REPOMD)
+        metadata_files.append(repomd_path)
         await gather(
-            self._sign_asc(_REPOMD),
+            self._sign_asc(repomd_path),
             *(self._storage.put_file(path) for path in metadata_files),
         )
 
-    def _save_record(self, record_type: str, repomd: cr.Repomd) -> Tuple[str, str]:
+    def _save_record(
+        self, record_type: str, repomd: cr.Repomd, arch: str
+    ) -> Tuple[str, str]:
         """Save record as XML and SQLite files.
 
         Args:
             record_type: Record type.
             repomd: Repomd
+            arch: Architecture.
 
         Returns:
             Record files paths.
         """
         content_stat = cr.ContentStat(self._checksum_type)
         db_record_type = f"{record_type}_db"
-        with self._create_db(db_record_type, content_stat) as db:
+        with self._create_db(db_record_type, content_stat, arch) as db:
             db_file, db_path = db
-            with self._create_xml(record_type, content_stat) as xml:
+            with self._create_xml(record_type, content_stat, arch) as xml:
                 xml_file, xml_path = xml
-                for pkg in self._pkgs[record_type].values():
+                for pkg in self._pkgs[arch][record_type].values():
                     xml_file.add_pkg(pkg)
                     db_file.add_pkg(pkg)
         return (
-            self._set_record(db_path, db_record_type, repomd, content_stat),
-            self._set_record(xml_path, record_type, repomd, content_stat),
+            self._set_record(db_path, db_record_type, repomd, content_stat, arch),
+            self._set_record(xml_path, record_type, repomd, content_stat, arch),
         )
 
     @contextmanager
     def _create_xml(
-        self, record_type: str, content_stat: cr.ContentStat
+        self, record_type: str, content_stat: cr.ContentStat, arch: str
     ) -> Generator[Tuple[cr.XmlFile, str], None, None]:
         """Create XML record.
 
         Args:
             record_type: Record type.
             content_stat: Empty content stat.
+            arch: Architecture.
 
         Yields:
             XML file.
         """
         path = self._storage.tmp_join(
-            _REPODATA,
+            self._arch_path(_REPODATA, arch),
             f"{record_type}.xml{cr.compression_suffix(self._compression) or ''}",
         )
         file = _FILES[record_type](path, self._compression, content_stat)
-        file.set_num_of_pkgs(len(self._pkgs[record_type]))
+        file.set_num_of_pkgs(len(self._pkgs[arch][record_type]))
         yield file, path
         file.close()
 
     @contextmanager
     def _create_db(
-        self, record_type: str, content_stat: cr.ContentStat
+        self, record_type: str, content_stat: cr.ContentStat, arch: str
     ) -> Generator[Tuple[cr.Sqlite, str], None, None]:
         """Create SQLite record.
 
         Args:
             record_type: Record type.
             content_stat: XML content stat.
+            arch: Architecture.
 
         Yields:
             SQLite file.
         """
         compression = self._db_compression != cr.NO_COMPRESSION
 
-        path = self._storage.tmp_join(_REPODATA, f"{record_type[:-3]}.sqlite")
+        path = self._storage.tmp_join(
+            self._arch_path(_REPODATA, arch), f"{record_type[:-3]}.sqlite"
+        )
         file = _FILES[record_type](path)
         yield file, path if not compression else path + cr.compression_suffix(
             self._db_compression
@@ -319,6 +421,7 @@ class Repository(RepositoryBase):
         record_type: str,
         repomd: cr.Repomd,
         content_stat: cr.ContentStat,
+        arch: str,
     ) -> str:
         """Set repomd record.
 
@@ -327,6 +430,7 @@ class Repository(RepositoryBase):
             record_type: Record type.
             repomd: Repomd.
             content_stat: XML content stat.
+            arch: Architecture
 
         Returns:
             Record file path.
@@ -337,7 +441,7 @@ class Repository(RepositoryBase):
         record.rename_file()
         path = record.location_href
         repomd.set_record(record)
-        return path
+        return self._arch_path(path, arch)
 
     async def _sign_pkg(self, filename: str, sign: bool) -> bool:
         """Sign RPM package. Must be in temporary directory.
@@ -381,8 +485,21 @@ class Repository(RepositoryBase):
                 return
             await self._exec(*_RPM, "--erase", "--allmatches", key_id.decode())
 
+    def _arch_path(self, path: str, arch: str) -> str:
+        """Return architecture specific relative path.
+
+        Args:
+            arch: Architecture.
+
+        Returns:
+            Relative path.
+        """
+        return f"{arch}{self._basearch_path}/{path}"
+
     @classmethod
-    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, str]:
+    async def find_repository(
+        cls, filename: str, **variables: str
+    ) -> Dict[str, Union[str, List[str]]]:
         """Find the repository where to store a package.
 
         Based on the "baseurl" field of the repository configuration.
@@ -406,19 +523,8 @@ class Repository(RepositoryBase):
                 "It can be set using RPM_BASEURL environment variable."
             )
 
-        match = _NEVRA.match(basename(filename))
-        if match is None:
-            raise InvalidPackage(
-                f'Unable to parse the "{filename}" package name. '
-                "The package name must be valid and follow the RPM naming convention "
-                '"<name>-<version>-<release>-<arch>.rpm" with "release" in the form '
-                '"<number>.<dist>" (For instance: '
-                '"my_package-1.0.0-1.el8.noarch.rpm").'
-            )
-
-        nevra = match.groupdict()
-        variables["arch"] = nevra["arch"]
-        variables["basearch"] = nevra["arch"]
+        nevra = cls._parse_nevra(basename(filename))
+        arch = nevra["arch"]
 
         if "$releasever" in BASEURL:
             try:
@@ -435,4 +541,32 @@ class Repository(RepositoryBase):
 
             variables["releasever"] = dist.lstrip(ascii_letters)
 
-        return dict(url=Template(BASEURL).substitute(variables))
+        if arch != "noarch" and arch not in BASEARCHS:
+            basearchs = BASEARCHS.copy()
+            basearchs.append(arch)
+        else:
+            basearchs = BASEARCHS
+
+        variables["basearch"] = "$basearch"
+        return dict(url=Template(BASEURL).substitute(variables), basearchs=basearchs)
+
+    @staticmethod
+    def _parse_nevra(filename: str) -> Dict[str, str]:
+        """Parse filename and return NEVRA.
+
+        Args:
+            filename: Filename.
+
+        Returns:
+            NEVRA.
+        """
+        match = _NEVRA.match(filename)
+        if match is None:
+            raise InvalidPackage(
+                f'Unable to parse the "{filename}" package name. '
+                "The package name must be valid and follow the RPM naming convention "
+                '"<name>-<version>-<release>-<arch>.rpm" with "release" in the form '
+                '"<number>.<dist>" (For instance: '
+                '"my_package-1.0.0-1.el8.noarch.rpm").'
+            )
+        return match.groupdict()

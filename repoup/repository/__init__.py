@@ -5,7 +5,7 @@ from os import getenv
 from os.path import isfile, join, splitext, dirname
 from shutil import move
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, List
 
 from repoup.lib import AsyncContext, import_component, run
 from repoup.storage import get_storage
@@ -125,7 +125,7 @@ class RepositoryBase(ABC, AsyncContext):
     @abstractmethod
     async def add(
         self, path: str, remove_source: bool = True, sign: bool = True
-    ) -> str:
+    ) -> List[str]:
         """Add a package if not already present in the repository.
 
         Args:
@@ -134,7 +134,7 @@ class RepositoryBase(ABC, AsyncContext):
             sign: If True, sign the package before adding it to the repository.
 
         Returns:
-            Resulting package path once added to the repository.
+            Resulting package path(s) once added to the repository.
         """
 
     @abstractmethod
@@ -375,7 +375,7 @@ class RepositoryBase(ABC, AsyncContext):
 
     @classmethod
     @abstractmethod
-    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, str]:
+    async def find_repository(cls, filename: str, **variables: str) -> Dict[str, Any]:
         """Find the repository where to store a package.
 
         Args:

@@ -1,6 +1,6 @@
 """Test repository base features."""
 from os.path import isfile, join
-from typing import Dict
+from typing import Dict, List
 
 import pytest
 
@@ -13,7 +13,7 @@ class MockRepository(RepositoryBase):
 
     async def add(
         self, path: str, remove_source: bool = True, sign: bool = True
-    ) -> str:
+    ) -> List[str]:
         """Add a package if not already present in the repository.
 
         Args:
@@ -24,7 +24,7 @@ class MockRepository(RepositoryBase):
         Returns:
             Resulting package path once added to the repository.
         """
-        return ""
+        return []
 
     async def remove(self, filename: str) -> None:
         """Add a package if present in the repository.

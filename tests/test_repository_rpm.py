@@ -11,20 +11,20 @@ PKG = "centos-stream-release-8.6-1.el8.noarch.rpm"
 PKG_PATH = f"tests/data/{PKG}"
 PKG_NAME = "centos-stream-release"
 rpm.BASEURL = "s3://bucket/$releasever/$basearch"
-REPO_URL = "s3://bucket/8/noarch"
-PKG_REPO_PATH = f"8/noarch/{PKG}"
+REPO_URL = "s3://bucket/8/x86_64"
+PKG_REPO_PATH = f"8/x86_64/{PKG}"
 
 
 async def test_initialize_empty_repository(storage_helper: StorageHelper) -> None:
     """Test empty repository initialization."""
     from createrepo_c import NO_COMPRESSION
 
-    repomd = "8/noarch/repodata/repomd.xml"
+    repomd = "8/x86_64/repodata/repomd.xml"
     async with (await get_repository(PKG)) as repo:
         pass
 
     assert repomd in storage_helper.keys
-    assert "repodata/repomd.xml" in repo.modified
+    assert "x86_64/repodata/repomd.xml" in repo.modified
 
     # Test without compression
     storage_helper.clear()
@@ -71,7 +71,7 @@ async def test_add_remove_package(storage_helper: StorageHelper) -> None:
     # Remove package
     async with (await get_repository(PKG)) as repo:
         await repo.remove(PKG)
-        assert PKG in repo.removed
+        assert f"x86_64/{PKG}" in repo.removed
 
     content = storage_helper.keys
     assert PKG_REPO_PATH not in content
@@ -122,7 +122,7 @@ async def test_add_sign_package(storage_helper: StorageHelper) -> None:
 
     content = storage_helper.keys
     assert PKG_REPO_PATH in content
-    assert "8/noarch/repodata/repomd.xml.asc" in content
+    assert "8/x86_64/repodata/repomd.xml.asc" in content
 
 
 async def test_add_sign_verify_package(storage_helper: StorageHelper) -> None:
@@ -152,7 +152,7 @@ async def test_find_repository() -> None:
     find_repository = rpm.Repository.find_repository
     try:
         # Test valid package name
-        assert (await find_repository(PKG))["url"] == REPO_URL
+        assert (await find_repository(PKG))["url"] == "s3://bucket/8/$basearch"
 
         # Test no BASEURL
         rpm.BASEURL = None
@@ -172,13 +172,13 @@ async def test_find_repository() -> None:
         rpm.BASEURL = "s3://bucket/$basearch"
         assert (await find_repository("centos-stream-release-8.6-1.noarch.rpm"))[
             "url"
-        ] == "s3://bucket/noarch"
+        ] == "s3://bucket/$basearch"
 
         # Test BASEURL with extra (Non RPM) variable
         rpm.BASEURL = "s3://bucket/$channel/$basearch"
         assert (await find_repository(PKG, channel="stable"))[
             "url"
-        ] == "s3://bucket/stable/noarch"
+        ] == "s3://bucket/stable/$basearch"
         rpm.BASEURL = BASEURL
 
     finally:

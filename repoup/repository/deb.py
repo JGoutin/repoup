@@ -163,7 +163,7 @@ class Repository(RepositoryBase):
 
     async def add(
         self, path: str, remove_source: bool = True, sign: bool = True
-    ) -> str:
+    ) -> List[str]:
         """Add a package if not already present in the repository.
 
         Args:
@@ -172,7 +172,7 @@ class Repository(RepositoryBase):
             sign: If True, sign the package before adding it to the repository.
 
         Returns:
-            Resulting package path once added to the repository.
+            Resulting package path(s) once added to the repository.
         """
         filename = basename(path)
         dst_path = self._get_pool_path(filename)
@@ -211,7 +211,7 @@ class Repository(RepositoryBase):
         await self._storage.remove_tmp(filename)
 
         self._mark_as_modified(dst_path, invalidate=False)
-        return dst_path
+        return [dst_path]
 
     async def remove(self, filename: str) -> None:
         """Remove a package if present in the repository.

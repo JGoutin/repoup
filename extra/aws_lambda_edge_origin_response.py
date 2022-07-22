@@ -24,8 +24,7 @@ INDEX = (
     "{table}</table></body></html>"
 )
 HEADERS = {
-    "cont"
-    "ent-type": [
+    "content-type": [
         {
             "key": "Content-Type",
             "value": "text/html",
@@ -64,15 +63,19 @@ HEADERS = {
     "content-security-policy": [
         {
             "key": "Content-Security-Policy",
-            "value": "default-src 'none'; frame-ancestors 'none'; style-src 'self'; "
-            "img-src 'self'; base-uri 'none'; form-action 'none';",
+            "value": (
+                "default-src 'none'; frame-ancestors 'none'; style-src 'self'; "
+                "img-src 'self'; base-uri 'none'; form-action 'none';"
+            ),
         }
     ],
     "permissions-policy": [
         {
             "key": "Permissions-Policy",
-            "value": "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),"
-            "magnetometer=(),gyroscope=(),fullscreen=(self),payment=()",
+            "value": (
+                "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),"
+                "magnetometer=(),gyroscope=(),fullscreen=(self),payment=()"
+            ),
         }
     ],
 }
@@ -115,7 +118,7 @@ def generates_index(response: Dict[str, Any], uri: str) -> None:
                 f'<tr><td><a href="{escape(quote(name))}">{escape(name)}</a></td>'
                 f'<td>{attrs["size"]}</td>'
                 f'<td>{attrs["last_modified"].strftime("%b %d %Y %H:%M")}</td>'
-                f"</tr>"
+                "</tr>"
                 for name, attrs in entries.items()
             ),
             uri=f"/{prefix}",

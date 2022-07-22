@@ -410,10 +410,10 @@ class Repository(RepositoryBase):
         if match is None:
             raise InvalidPackage(
                 f'Unable to parse the "{filename}" package name. '
-                f"The package name must be valid and follow the RPM naming convention "
-                f'"<name>-<version>-<release>-<arch>.rpm" with "release" in the form '
-                f'"<number>.<dist>" (For instance: '
-                f'"my_package-1.0.0-1.el8.noarch.rpm").'
+                "The package name must be valid and follow the RPM naming convention "
+                '"<name>-<version>-<release>-<arch>.rpm" with "release" in the form '
+                '"<number>.<dist>" (For instance: '
+                '"my_package-1.0.0-1.el8.noarch.rpm").'
             )
 
         nevra = match.groupdict()
@@ -425,11 +425,11 @@ class Repository(RepositoryBase):
                 dist = nevra["release"].split(".", 1)[1]
             except IndexError:
                 raise InvalidPackage(
-                    f'Unable to get "releasever" from "release" value '
+                    'Unable to get "releasever" from "release" value '
                     f'"{nevra["release"]}" for package "{filename}".'
-                    f'The package "release" field must contain the dist tag and be in '
-                    f'the form "<number>.<dist>" (For instance: "1.el8"). '
-                    f"This is generally done using the dist macro in RPM spec: "
+                    'The package "release" field must contain the dist tag and be in '
+                    'the form "<number>.<dist>" (For instance: "1.el8"). '
+                    "This is generally done using the dist macro in RPM spec: "
                     f'"Release: 1{_DIST_TAG}".'
                 )
 

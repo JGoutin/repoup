@@ -12,7 +12,6 @@ async def test_s3_storage() -> None:
     from repoup.storage import get_storage
 
     async with get_storage("s3://bucket/repo") as storage:
-
         # Put and get object
         content = urandom(64)
         key = "object"

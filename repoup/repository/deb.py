@@ -318,7 +318,7 @@ class Repository(RepositoryBase):
     async def _load_packages(self) -> None:
         """Load or initialize the Packages index."""
         try:
-            with (await self._open_index(self._path_packages, uncompress=True)) as file:
+            with await self._open_index(self._path_packages, uncompress=True) as file:
                 pkgs = self._pkgs
                 for pkg in Packages.iter_paragraphs(file, use_apt_pkg=_USE_APT_PKG):
                     pkgs[pkg["Package"]] = pkg
@@ -531,20 +531,18 @@ class Repository(RepositoryBase):
         match = _NAME.match(basename(filename))
         if match is None:
             raise InvalidPackage(
-                (
-                    f'Unable to parse the "{filename}" package name. '
-                    f"The package name must be valid and follow the DEB naming "
-                    f'convention "<Package>_<Version>_<architecture>.deb" with '
-                    f'"Version" in the form '
-                    f'"<upstream_version>-<debian_revision>+<codename>" (For instance: '
-                    f'"my-package_1.0.0-1+bullseye_amd64.deb").'
-                )
+                f'Unable to parse the "{filename}" package name. '
+                "The package name must be valid and follow the DEB naming "
+                'convention "<Package>_<Version>_<architecture>.deb" with '
+                '"Version" in the form '
+                '"<upstream_version>-<debian_revision>+<codename>" (For instance: '
+                '"my-package_1.0.0-1+bullseye_amd64.deb").'
                 if autodetect_codename
                 else (
                     f'Unable to parse the "{filename}" package name. '
-                    f"The package name must be valid and follow the DEB naming "
-                    f'convention "<Package>_<Version>_<Architecture>.deb" (For '
-                    f'instance: "my-package_1.0.0-1_amd64.deb").'
+                    "The package name must be valid and follow the DEB naming "
+                    'convention "<Package>_<Version>_<Architecture>.deb" (For '
+                    'instance: "my-package_1.0.0-1_amd64.deb").'
                 )
             )
         fields = match.groupdict()
@@ -553,21 +551,21 @@ class Repository(RepositoryBase):
             revision = fields["revision"]
             if not revision:
                 raise InvalidPackage(
-                    f'Unable to get "debian_revision" from "Version" field '
+                    'Unable to get "debian_revision" from "Version" field '
                     f'"{revision}" for package "{filename}".'
-                    f'The package "Version" field must contain a Debian revision that '
-                    f"include the distribution codename and be in the form "
-                    f'"<upstream_version>-<debian_revision>+<codename>" '
-                    f'(For instance: "1.0.0-1+bullseye").'
+                    'The package "Version" field must contain a Debian revision that '
+                    "include the distribution codename and be in the form "
+                    '"<upstream_version>-<debian_revision>+<codename>" '
+                    '(For instance: "1.0.0-1+bullseye").'
                 )
             match = _REVISION.match(revision)
             if match is None or not match.groupdict().get("codename"):
                 raise InvalidPackage(
-                    f'Unable to get "codename" from "Version.debian_revision" field '
+                    'Unable to get "codename" from "Version.debian_revision" field '
                     f'"{revision}" for package "{filename}".'
-                    f'The package "debian_revision" field must contain the codename '
-                    f'and be in the form "<debian_revision>+<codename>" '
-                    f'(For instance: "1+bullseye").'
+                    'The package "debian_revision" field must contain the codename '
+                    'and be in the form "<debian_revision>+<codename>" '
+                    '(For instance: "1+bullseye").'
                 )
             fields.update(match.groupdict())
 

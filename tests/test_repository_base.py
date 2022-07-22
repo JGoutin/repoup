@@ -103,7 +103,6 @@ async def test_repository_gpg_with_password() -> None:
             gpg_verify=True,
             gpg_clear=True,
         ) as repo:
-
             path = repo._storage.tmp_join(rel_path)
             with open(path, "wb") as file:
                 file.write(b"test")
